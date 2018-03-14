@@ -1,0 +1,100 @@
+s1PHP:
+  container_name: s1PHP
+  image: magarusu/php:development-ubuntu
+  volumes:
+    - ./source/cod/v1:/var/www/html/s1
+  links:
+    - mailcatcher:sendmail
+    - s1DB:mysql
+  environment:
+    - PHP_IDE_CONFIG=serverName=s1
+
+s2PHP:
+  container_name: s2PHP
+  image: magarusu/php:development-ubuntu
+  volumes:
+    - ./source/cod/v2:/var/www/html/s2
+  links:
+    - mailcatcher:sendmail
+    - s2DB:mysql
+  environment:
+    - PHP_IDE_CONFIG=serverName=s2
+
+s3PHP:
+  container_name: s3PHP
+  image: magarusu/php:development-ubuntu
+  volumes:
+    - ./source/cod/v3:/var/www/html/s3
+  links:
+    - mailcatcher:sendmail
+    - s3DB:mysql
+  environment:
+    - PHP_IDE_CONFIG=serverName=s3
+
+nginx:
+  container_name: nginx
+  image: nginx
+  ports:
+    - 80:80
+  volumes:
+    - ./nginx/hosts:/etc/nginx/conf.d
+    # Mount code for static files access.
+    - ./source/cod/v1:/var/www/html/s1
+    - ./source/cod/v1:/var/www/html/s2
+    - ./source/cod/v3:/var/www/html/s3
+  links:
+    - s1PHP
+    - s2PHP
+    - s3PHP
+
+#NU MODIFICA MAI JOS :)
+mailcatcher:
+  container_name: mailcatcher
+  image: magarusu/mailcatcher
+  # Open port for localhost web access.
+  ports:
+    - 1080:1080
+#BAZE DE DATE
+s1DB:
+  container_name: s1DB
+  image: magarusu/mariadb
+  volumes:
+    - ./source/db/s1/dumps:/docker-entrypoint-initdb.d
+    - ./source/db/s1/mariadb:/var/lib/mysql
+  environment:
+    - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    - MYSQL_DATABASE=s1
+    - MYSQL_USER=s1
+    - MYSQL_PASSWORD=s1
+  # Open port for db access from localhost.
+  ports:
+    - 3307:3306
+s2DB:
+  container_name: s2DB
+  image: magarusu/mariadb
+  volumes:
+    - ./source/db/s2/dumps:/docker-entrypoint-initdb.d
+    - ./source/db/s2/mariadb:/var/lib/mysql
+  environment:
+    - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    - MYSQL_DATABASE=s1
+    - MYSQL_USER=s1
+    - MYSQL_PASSWORD=s1
+  # Open port for db access from localhost.
+  ports:
+    - 3308:3306
+s3DB:
+  container_name: s3DB
+  image: magarusu/mariadb
+  volumes:
+    - ./source/db/s3/dumps:/docker-entrypoint-initdb.d
+    - ./source/db/s3/mariadb:/var/lib/mysql
+  environment:
+    - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    - MYSQL_DATABASE=s1
+    - MYSQL_USER=s1
+    - MYSQL_PASSWORD=s1
+  # Open port for db access from localhost.
+  ports:
+    - 3309:3306
+

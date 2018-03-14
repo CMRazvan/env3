@@ -1,0 +1,63 @@
+mailcatcher:
+  container_name: mailcatcher
+  image: magarusu/mailcatcher
+  # Open port for localhost web access.
+  ports:
+    - 1080:1080
+mariaDB:
+  container_name: mariaDB
+  image: magarusu/mariadb
+  volumes:
+    - ../sql/magento2/dumps:/docker-entrypoint-initdb.d
+    - ../sql/magento2/mariadb:/var/lib/mysql
+  environment:
+    - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    - MYSQL_DATABASE=magento2
+    - MYSQL_USER=magento2
+    - MYSQL_PASSWORD=magento2
+  # Open port for db access from localhost.
+  ports:
+    - 3307:3306
+magento:
+  container_name: magento
+  image: magarusu/php:development-php7
+  ports:
+      # Open port 7055 for functional tests
+      - 7055:7055
+  volumes:
+    - ./php/script/magento2/auth.json:/home/php/.composer/auth.json
+    - ./php/script/magento2/core.sh:/usr/local/bin/start.sh
+    - ../Work/magento2:/var/www/html/magento2
+    - ../Work/magento2-sample-data:/var/www/html/magento2-sample-data
+  links:
+    - mailcatcher:sendmail
+    - mariaDB:mysql
+  environment:
+    - MAGENTO_FOLDER=/var/www/html/magento2
+    - USE_SAMPLE_DATA=true
+    - MYSQL_DATABASE=magento2
+    - MYSQL_USER=magento2
+    - MYSQL_PASSWORD=magento2
+    - MAGENTO_BASE_URL=http://magento2.dev/
+    - MAGENTO_HOST_URL=magento2.dev
+    - MAGENTO_ADMIN_URL=admin
+    - MAGENTO_ADMIN_FIRSTNAME=Magento
+    - MAGENTO_ADMIN_LASTNAME=Admin
+    - MAGENTO_ADMIN_EMAIL=john.doe@example.com
+    - MAGENTO_ADMIN_USER=magento2
+    - MAGENTO_ADMIN_PASS=magento2
+    - PHP_IDE_CONFIG=serverName=magento2
+  entrypoint: /usr/local/bin/start.sh
+  user: php
+nginx:
+  container_name: nginx
+  image: nginx
+  ports:
+    - 80:80
+  volumes:
+    - ./nginx/hosts:/etc/nginx/conf.d
+    # Mount code for static files access.
+    - ../Work/magento2:/var/www/html/magento2
+    - ../Work/magento2-sample-data:/var/www/html/magento2-sample-data
+  links:
+    - magento

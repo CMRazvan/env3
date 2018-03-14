@@ -1,0 +1,66 @@
+# Sendgrid container.
+sendgrid:
+  container_name: sendgrid
+  image: tozd/postfix
+  volumes:
+    - ./postfix/config.sh:/usr/local/bin/config.sh
+  environment:
+    # @todo Add your username and password.
+    - USERNAME=SENDGRID_USERNAME
+    - PASSWORD=SENDGRID_PASSWORD
+  entrypoint: /usr/local/bin/config.sh
+mariaDB:
+  container_name: mariaDB
+  image: magarusu/mariadb
+  volumes:
+    - ../sql/magento2/dumps:/docker-entrypoint-initdb.d
+    - ../sql/magento2/mariadb:/var/lib/mysql
+  environment:
+    - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    - MYSQL_DATABASE=magento2
+    - MYSQL_USER=magento2
+    - MYSQL_PASSWORD=magento2
+  # Open port for db access from localhost.
+  ports:
+    - 3307:3306
+magento:
+  container_name: magento
+  image: magarusu/php
+  ports:
+    # Open port 7055 for functional tests
+    - 7055:7055
+  volumes:
+    # @todo Add your username and password inside auth.json.
+    - ./php/script/magento2/auth.json:/root/.composer/auth.json
+    - ./php/script/magento2/production.sh:/usr/local/bin/production.sh
+    - ../Work/magento2:/var/www/html/magento2
+  links:
+    - sendgrid
+    - mariaDB:mysql
+  environment:
+    - MAGENTO_FOLDER=/var/www/html/magento2
+    - USE_SAMPLE_DATA=true
+    - MYSQL_DATABASE=magento2
+    - MYSQL_USER=magento2
+    - MYSQL_PASSWORD=magento2
+    - MAGENTO_BASE_URL=http://magento2.dev/
+    - MAGENTO_HOST_URL=magento2.dev
+    - MAGENTO_ADMIN_URL=admin
+    - MAGENTO_ADMIN_FIRSTNAME=Magento
+    - MAGENTO_ADMIN_LASTNAME=Admin
+    - MAGENTO_ADMIN_EMAIL=john.doe@example.com
+    - MAGENTO_ADMIN_USER=magento2
+    - MAGENTO_ADMIN_PASS=magento2
+    - PHP_IDE_CONFIG=serverName=magento2
+  entrypoint: /usr/local/bin/production.sh
+nginx:
+  container_name: nginx
+  image: nginx
+  ports:
+    - 80:80
+  volumes:
+    - ./nginx/hosts:/etc/nginx/conf.d
+    # Mount code for static files access.
+    - ../Work/magento2:/var/www/html/magento2
+  links:
+    - magento
